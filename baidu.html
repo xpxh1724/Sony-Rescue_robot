@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+		<title>DEMO</title>
+		<script src="qrc:/qtwebchannel/qwebchannel.js"></script>
+		<script src="qrc:/apiv1.3.min.js"></script>
+		<script>
+			new QWebChannel(qt.webChannelTransport, function(channel) {
+				window.MainWindow = channel.objects.MainWindow; // 注册
+			});
+		</script>
+		<script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=Kff1lU3F0hO1NomY3ubbkGXpYRTKsaB5"></script>
+	</head>
+	<style>
+		html {
+			margin: 0;
+			padding: 0;
+		}
+
+		body {
+			margin: 0;
+			padding: 0;
+		}
+	</style>
+	<body>
+		<div style="width:790px;height:705px;margin:0;padding:0;" id="container"></div>
+	</body>
+</html>
+
+<script type="text/javascript">
+	var map = new BMap.Map('container'); //创建地图
+	// map.setMapStyle({style: "midnight"}); // 设置地图样式为"midnight"
+	// map.setMapStyleV2({     
+	//   styleId: 'ebd5edefe8ef3566d2fe65b09ed0e66a'
+	// });
+	var point = new BMap.Point(103.600448, 30.892712) //创建初始点坐标
+	// 初始创建标注
+	var markerstart = new BMap.Marker(point, {
+		title: "经度:" + point.lng + "\n纬度:" + point.lat + "\n备注:起始点"
+	}); 
+	markerstart.addEventListener("click", function() {
+		alert(this.getTitle());
+	});
+	map.addOverlay(markerstart);// 添加初始标注
+	
+	map.centerAndZoom(point, 18);//以point为中心坐标显示地图中心位置
+	//=================== control 控件============================================================
+	map.enableScrollWheelZoom(); //启用滚轮放大缩小
+	map.enableKeyboard(); //启用键盘操作，默认禁用。键盘的上、下、左、右键可连续移动地图。
+	map.enableContinuousZoom(); //启用连续缩放效果
+	// map.addControl(new BMap.NavigationControl()); //地图平移缩放控件
+	map.addControl(new BMap.ScaleControl()); //显示比例尺在右下角
+
+
+
+	//=================== QT调用JS中的函数 =============================================================
+	//qt-run-根据经纬度创建标注函数
+	function myMarker(lng, lat, text, head) {
+		allMarker = map.getOverlays(); //保存所有标注
+		var newpoint = new BMap.Point(lng, lat);
+		var decodedText = decodeURIComponent(text);
+		var newmarker = new BMap.Marker(newpoint); // 创建标注
+		map.addOverlay(newmarker);
+		var opts = {
+			width: 200,
+			height: 100,
+			title: head
+		};
+
+		//窗口信息设置
+		var infoWindow = new BMap.InfoWindow("经度:" + lng + "<br>纬度:" + lat + "<br>备注:" + decodedText, opts);
+		newmarker.addEventListener("click", function() {
+			// alert(this.getTitle());
+			this.openInfoWindow(infoWindow, newpoint);
+		});
+
+	}
+	//qt-run-根据经纬度删除标注函数
+	function removeMarker(lng, lat) {
+		var point = new BMap.Point(lng, lat);
+		// 遍历地图中的覆盖物
+		var overlays = map.getOverlays();
+		for (var i = 0; i < overlays.length; i++) {
+			var overlay = overlays[i];
+			// 判断覆盖物类型为标注，并且经纬度匹配
+			if (overlay instanceof BMap.Marker &&
+				overlay.getPosition().lng === point.lng &&
+				overlay.getPosition().lat === point.lat) {
+				// 移除标注
+				map.removeOverlay(overlay);
+				alert("删除成功");
+				break;
+			}
+		}
+	};
+	//qt-run-color通过经纬度给标注变颜色
+	function changeMarkerColor_blue(lng, lat) {
+		var allOverlay = map.getOverlays();
+		var targetMarker;
+		for (var i = 0; i < allOverlay.length; i++) {
+			if (allOverlay[i] instanceof BMap.Marker) {
+				var point = allOverlay[i].getPosition();
+				if (point.lng === lng && point.lat === lat) {
+					targetMarker = allOverlay[i];
+					break;
+				}
+			}
+		}
+
+		if (targetMarker) {
+			var newIcon = new BMap.Icon('http://api.map.baidu.com/img/markers.png', new BMap.Size(23, 25), {
+				offset: new BMap.Size(10, 25),
+				imageOffset: new BMap.Size(0, 0 - 25 * 10) // 将颜色设置为蓝色
+			});
+			targetMarker.setIcon(newIcon);
+		} else {
+			console.log("no find");
+		}
+	}
+	//qt-run-color通过经纬度给标注变颜色变回去
+	function changeMarkerColor_red(lng, lat) {
+		var allOverlay = map.getOverlays();
+		var targetMarker;
+		for (var i = 0; i < allOverlay.length; i++) {
+			if (allOverlay[i] instanceof BMap.Marker) {
+				var point = allOverlay[i].getPosition();
+				if (point.lng === lng && point.lat === lat) {
+					targetMarker = allOverlay[i];
+					break;
+				}
+			}
+		}
+
+		if (targetMarker) {
+			var newIcon = new BMap.Icon('http://api.map.baidu.com/img/markers.png', new BMap.Size(23, 25), {
+				offset: new BMap.Size(10, 25),
+				imageOffset: new BMap.Size(0, 0 - 25 * 11) // 将颜色设置为蓝色
+			});
+			targetMarker.setIcon(newIcon);
+		} else {
+			console.log("no find");
+		}
+	}
+	//qt-showNone
+	function showNone() {
+		var div = document.getElementById('container');
+		div.style.width = '790px';
+		div.style.height = '705px';
+	}
+	//qt-showMax
+	function showMax() {
+		var div = document.getElementById('container');
+		div.style.width = '795px';
+		div.style.height = '815px';
+	}
+	//qt-on_btn_Map_LJGH_clicked 调用路径规划
+	function getsearch(lng1, lat1, lng2, lat2) {
+		var p1 = new BMap.Point(lng1, lat1);
+		var p2 = new BMap.Point(lng2, lat2);
+		var driving = new BMap.DrivingRoute(map, {
+			renderOptions: {
+				map: map,
+				autoViewport: true
+			}
+		});
+		driving.search(p1, p2);
+	}
+	//qt-运动轨迹绘制
+	function drawTrajectory(path)
+	{
+		// 遍历路径数组，将每个坐标转换为BMap.Point对象，并添加到一个新的数组中
+		var points = [];
+		for (var i = 0; i < path.length; i++) {
+		    var point = new BMap.Point(path[i].lng, path[i].lat);
+		    points.push(point);
+		}
+		
+		// 使用BMap.Polyline创建一条折线，表示这些点之间的连线
+		var polyline = new BMap.Polyline(points, {strokeColor: "green", strokeWeight: 3, strokeOpacity: 0.5});
+		map.addOverlay(polyline);
+	}
+	//=================== JS中的函数传递给QT ============================================================
+	//点击事件
+	map.addEventListener("click", function(e) {
+		MainWindow.getCoordinate_click(e.point.lng, e.point.lat);
+	});
+	//鼠标移动事件
+	map.addEventListener("mousemove", function(e) {
+		// MainWindow.getCoordinate_mousemove(e.point.lng, e.point.lat, map.getZoom());
+	});
+	
+	
+
+// // 定义一个包含经纬度坐标的路径数组
+// var path = [
+// 	{lng: 103.600448, lat: 30.892712},
+//     {lng: 103.600008, lat: 30.892909},
+//     {lng: 103.599837, lat: 30.892371},
+//     {lng: 103.600861, lat: 30.892266},
+//     {lng: 103.601759, lat: 30.892173},
+//     {lng: 103.60268, lat: 30.892084},
+//     {lng: 103.602887, lat: 30.892917},
+//     {lng: 103.603318, lat: 30.892844}
+// ];
+
+// // 遍历路径数组，将每个坐标转换为BMap.Point对象，并添加到一个新的数组中
+// var points = [];
+// for (var i = 0; i < path.length; i++) {
+//     var point = new BMap.Point(path[i].lng, path[i].lat);
+//     points.push(point);
+// }
+
+// // 使用BMap.Polyline创建一条折线，表示这些点之间的连线
+// var polyline = new BMap.Polyline(points, {strokeColor: "green", strokeWeight: 3, strokeOpacity: 0.5});
+// map.addOverlay(polyline);
+
+</script>
